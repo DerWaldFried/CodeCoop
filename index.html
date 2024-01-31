@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    
+
+    <title>Code Editor</title>
+    
+    <style>
+        body {
+            height: 100%;
+        }
+
+        textarea {
+            width: 100%;
+            height: 90vh;
+        }
+    </style>
+</head>
+<body>
+    <textarea id="codeeditor"></textarea>
+
+    <script>
+        const socket = io();
+
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeeditor'), {
+            lineNumbers: true,
+            mode: "javascript"
+        });
+
+        let isRemoteChange = false;
+
+        socket.on('loadCode', (newCode) => {
+            isRemoteChange = true;
+            editor.setValue(newCode);
+            isRemoteChange = false;
+        });
+
+        socket.on('codeChange', (newCode) => {
+            if (!isRemoteChange) {
+                const cursor = editor.getCursor();
+                const currentCode = editor.getValue();
+                if (currentCode !== newCode) {
+                    isRemoteChange = true;
+                    editor.setValue(newCode);
+                    editor.setCursor(cursor);
+                    isRemoteChange = false;
+                }
+            }
+        });
+
+        editor.on('change', () => {
+            if (!isRemoteChange) {
+                socket.emit('codeChange', editor.getValue());
+            }
+        });
+    </script>
+</body>
+</html>
