@@ -1,17 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Ich definiere die grundlegenden Metadaten für die Webseite. -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Ich binde die Stylesheet- und Skriptdateien für CodeMirror ein, eine Bibliothek, die ich für den Code-Editor verwende. -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    
 
+    <!-- Ich binde das Socket.IO-Skript ein, das ich für die Echtzeit-Kommunikation zwischen dem Server und dem Client verwende. -->
+    <script src="/socket.io/socket.io.js"></script>
+
+    <!-- Ich setze den Titel der Webseite. -->
     <title>Code Editor</title>
     
+    <!-- Ich definiere einige CSS-Stile für die Webseite. -->
     <style>
         body {
             height: 100%;
@@ -24,24 +29,30 @@
     </style>
 </head>
 <body>
+    <!-- Ich erstelle ein Textbereich-Element, das ich in einen Code-Editor umwandeln werde. -->
     <textarea id="codeeditor"></textarea>
 
     <script>
+        // Ich erstelle eine Verbindung zum Socket.IO-Server.
         const socket = io();
 
+        // Ich verwandle das Textbereich-Element in einen CodeMirror-Editor.
         const editor = CodeMirror.fromTextArea(document.getElementById('codeeditor'), {
             lineNumbers: true,
             mode: "javascript"
         });
 
+        // Ich erstelle eine Variable, um zu verfolgen, ob eine Änderung vom Server kommt.
         let isRemoteChange = false;
 
+        // Ich höre auf das 'loadCode'-Ereignis vom Server und lade den empfangenen Code in den Editor.
         socket.on('loadCode', (newCode) => {
             isRemoteChange = true;
             editor.setValue(newCode);
             isRemoteChange = false;
         });
 
+        // Ich höre auf das 'codeChange'-Ereignis vom Server und aktualisiere den Code im Editor, wenn er sich von dem aktuellen Code unterscheidet.
         socket.on('codeChange', (newCode) => {
             if (!isRemoteChange) {
                 const cursor = editor.getCursor();
@@ -55,10 +66,16 @@
             }
         });
 
+        // Ich höre auf das 'change'-Ereignis vom Editor und sende den geänderten Code an den Server, wenn die Änderung nicht vom Server kommt.
         editor.on('change', () => {
             if (!isRemoteChange) {
                 socket.emit('codeChange', editor.getValue());
             }
+        });
+
+        // Ich höre auf das 'beforeunload'-Ereignis des Fensters und sende den aktuellen Code an den Server, wenn der Benutzer die Seite verlässt.
+        window.addEventListener('beforeunload', () => {
+            socket.emit('saveCode', editor.getValue());
         });
     </script>
 </body>
